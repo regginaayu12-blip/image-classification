@@ -16,6 +16,7 @@ st.write("Ubah notebook klasifikasi menjadi aplikasi interaktif menggunakan Stre
 # =========================================================
 # Anda dapat menyesuaikan path model di bawah ini jika diletakkan di folder berbeda
 DEFAULT_MODEL_PATH = "model_buah_cnn.keras"
+DRIVE_MODEL_URL = "https://drive.google.com/uc?id=10wD0xb9E_QGifoKsg4RI5vePRpdIztMK"
 IMG_SIZE = (277, 277)
 CLASS_NAMES = ['anggur', 'buah naga']
 
@@ -24,8 +25,19 @@ st.sidebar.header("⚙️ Pengaturan Model")
 model_file_path = st.sidebar.text_input("Path Model (.keras):", value=DEFAULT_MODEL_PATH)
 
 # Fungsi untuk memuat model dengan cache agar tidak reload terus menerus
+# Fungsi untuk memuat model dengan cache agar tidak reload terus menerus
 @st.cache_resource
 def load_cnn_model(path):
+    # 1. Jika file tidak ada di lokal, unduh otomatis dari Google Drive
+    if not os.path.exists(path):
+        st.info("Model tidak ditemukan di lokal. Mengunduh dari Google Drive...")
+        try:
+            import gdown
+            gdown.download(DRIVE_MODEL_URL, path, quiet=False)
+        except Exception as e:
+            return None, f"[ERROR] Gagal mengunduh model dari Google Drive: {str(e)}"
+
+    # 2. Jika file sudah ada (atau setelah berhasil diunduh), muat modelnya
     if os.path.exists(path):
         try:
             model = load_model(path)
@@ -33,7 +45,16 @@ def load_cnn_model(path):
         except Exception as e:
             return None, f"[ERROR] Gagal memuat model: {str(e)}"
     else:
-        return None, f"[ERROR] File model tidak ditemukan di '{path}'. Pastikan file model sudah di-upload ke server/direktori."
+        return None, f"[ERROR] File model tetap tidak ditemukan setelah mencoba mengunduh."
+    # 2. Jika file sudah ada (atau setelah berhasil diunduh), muat modelnya
+    if os.path.exists(path):
+        try:
+            model = load_model(path)
+            return model, f"[INFO] Model berhasil dimuat dari {path}!"
+        except Exception as e:
+            return None, f"[ERROR] Gagal memuat model: {str(e)}"
+    else:
+        return None, f"[ERROR] File model tetap tidak ditemukan setelah mencoba mengunduh."
 
 # Load model secara otomatis jika file tersedia
 model, message = load_cnn_model(model_file_path)
